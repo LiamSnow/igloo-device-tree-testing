@@ -7,3 +7,18 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+shared = { path = "../shared" }
+column = { path = "../column" }
+old = { path = "../old" }
+
+[dev-dependencies]
+criterion = { version = "0.8.2", features = ["html_reports"] }
+shared = { path = "../shared" }
+column = { path = "../column" }
+old = { path = "../old" }
+
+[[bench]]
+name = "my_bench"
+harness = false
+
+

@@ -1,9 +1,22 @@
 [workspace.package]
 edition = "2024"
-license = "GNU GPLv3"
-repository = "https://github.com/liamsnow/igloo"
 rust-version = "1.93.0"
+repository = "https://github.com/liamsnow/igloo"
+license = "GNU GPLv3"
 
 [workspace]
-members = ["bench","column","old", "shared"]
 resolver = "3"
+members = [
+  "bench",
+  "column",
+  "old",
+  "shared",
+]
+
+[profile.release]
+opt-level = 3
+debug = true
+lto = "fat"
+# strip = true
+panic = "abort"
+codegen-units = 1

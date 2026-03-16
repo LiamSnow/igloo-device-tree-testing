@@ -2,12 +2,12 @@
 
 Testing some different methods for storing the device tree in column-wise
 storage for extremely efficient queries.
-But also fully concurrent, lock-free storage by leveraging atomics.
+Also, fully concurrent, lock-free storage by leveraging atomics.
 
-It also compares against a best-effort recreation of the
+It compares the various methods against a best-effort recreation of the
 old query + device tree system.
 
-Basically I'm an idiot and chose a bad storage system for ECS in igloo, this is an implementation that is much more standard.
+The new methods are pretty standard for ECS engines.
 
 Note: Code is partially AI written.
 
@@ -23,22 +23,23 @@ This gives us a superpower, we can simply do `presense[Dimmer] & presense[Light]
 
 What we get back is a bitset which correlates to slot indexes (in this case slots are entities stored globally) which matched our query. We can iterate this and grab all our values via `values[Dimmer][slot ID]`.
 
+It's branch-less, cache-friendly (dense), no pointer chasing, and, once we have the result, fast to iterate over.
+
 ## Concurrency
  - Most components are <=8 bytes
- - Readings being stale by microseconds is acceptable
  - We'll only target 64-bit systems
 
 Given this, it makes sense to store most components
 as `AtomicU64` with relaxed loading and storing.
 
-But we still have problem - if just used `Vec<_>` we would
+But we still have problem: if just used `Vec<_>` we would
 break concurrency, because every push can cause a `realloc`
 which moves the entire `Vec`.
 
 Here we are simply over-allocating massive slices.
 Obviously not a great method, I haven't chosen if I want
 to go with a paged/concurrent append-only `Vec` implementation
-or simply just eat the cost of slices + use `MaybeUninit<_>`.
+or simply just eat the cost of slices + use `MaybeUninit<_>` (and rely on OS for lazy page allocation).
 
 ## Layer Bitsets
 This is an idea from [hibitset](https://github.com/amethyst/hibitset)
@@ -95,8 +96,8 @@ One test evaluates global, one for a group of devices, and one for only 1 device
 This test pretty cleanly cements L2 V1 as the all around champion (hence why it's used above).
 
 ## Global
-I think pretty expected results.
-There are so many matches, that the hierarchical bitsets actually slow us down slightly.
+Pretty much expected results.
+There are many matches so not having to go through the hierachical bitset layers gives a slight performance edge.
 
 Pretty awesome to see it absolutely crushing the old system.
 
@@ -104,16 +105,14 @@ Pretty awesome to see it absolutely crushing the old system.
 
 ## Group
 This is quite a wild result.
- - L3 is hurting us here, because 100 devices is very few
+ - L3 is hurting us here. 100 devices is very few so the less indirection from L2 wins.
  - V3 is expectedly very slow (pointer chasing & generally not cache friendly)
- - V2 is interesting... I would have guessed that iterating over a smaller subset is better, but clearly not
+ - V2 is interesting... I would have guessed that iterating over a smaller subset is better, but clearly less indirection and better cache behavior is much more important.
 
 ![](group.svg)
 
 ## Device
-You'd think, we are only targeting one device, why would eval time grow with device input size?
-
-The answer is cache behavior. In the old system, entities and devices are huge.
-My best guess here is that the `Vec`'s massive allocation causes cache line pollution or TLB misses.
+This is quite an interesting result. You'd think, we are only targeting one device, why would evaluation time grow with device input size (for the old system)? 
+My best guess here is that the `Vec`'s massive allocation causes cache line pollution or TLB misses (since entities and devices are both huge).
 
 ![](device.svg)

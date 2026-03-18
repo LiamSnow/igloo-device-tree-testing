@@ -112,7 +112,8 @@ This is quite a wild result.
 ![](group.svg)
 
 ## Device
-This is quite an interesting result. You'd think, we are only targeting one device, why would evaluation time grow with device input size (for the old system)? 
-My best guess here is that the `Vec`'s massive allocation causes cache line pollution or TLB misses (since entities and devices are both huge).
+This is pretty expected results.
+In the old system, we use a hash map, which means that as we add more devices there is a higher chance of hash collisions.
+The new systems are simply checking bitsets and then indexing to slices, which is O(1) worst case.
 
 ![](device.svg)

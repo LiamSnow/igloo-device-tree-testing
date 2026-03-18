@@ -112,8 +112,4 @@ This is quite a wild result.
 ![](group.svg)
 
 ## Device
-This is pretty expected results.
-In the old system, we use a hash map, which means that as we add more devices there is a higher chance of hash collisions.
-The new systems are simply checking bitsets and then indexing to slices, which is O(1) worst case.
-
 ![](device.svg)
